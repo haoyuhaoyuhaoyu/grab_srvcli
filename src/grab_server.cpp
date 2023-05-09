@@ -14,6 +14,7 @@
 #include "kdl/chainiksolverpos_nr_jl.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
+#include "udp.h"
 
 // 手动维护句柄
 SOCKHANDLE m_sockhand_left = -1;
@@ -34,6 +35,9 @@ union robot_state_req_u{
     double id_d_xyz[5];
     uint8_t buffer[40];
 };
+
+robot_state_u rs_u;
+
 //tracik
 std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_r;
 std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_l;
@@ -215,12 +219,17 @@ void set_end_pos_r(SOCKHANDLE m_sockhand)
     end_effector_pose.M(2, 1) = -0.91606;
     end_effector_pose.M(2, 2) = -0.329142;
 
-     end_effector_pose.p[0] = 0.136268 + 0.02;
-     end_effector_pose.p[1] = -0.438657 - 0.01;
-     end_effector_pose.p[2] = -0.05049 + 0.05;
+    // init pos
+    //  end_effector_pose.p[0] = 0.136268 + 0.02;
+    //  end_effector_pose.p[1] = -0.438657 - 0.01;
+    //  end_effector_pose.p[2] = -0.05049 + 0.05;
+    
     // end_effector_pose.p[0] = 0.46;
     //  end_effector_pose.p[1] = -0.27;
     //  end_effector_pose.p[2] = 0.27049;
+    end_effector_pose.p[0] = rs_u.id_d_xyz[2];
+    end_effector_pose.p[1] = rs_u.id_d_xyz[3];
+    end_effector_pose.p[2] = rs_u.id_d_xyz[4]-0.03;
 
 
     KDL::JntArray result;
@@ -403,10 +412,32 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "success: [%ld]", (long int)response->if_success);
 }
 
-void Getpos(int a)
+void Get_pos()
 {
-  std::cout << "111";
-  //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "a = %d", a);
+  struct sockaddr_storage src_addr = {0};
+    socklen_t addrlen = sizeof src_addr;
+
+    char *iface_addr_str = "0.0.0.0";
+    char *iface_port_str = "10001";
+
+    int sock = udp_init_host(iface_addr_str, iface_port_str);
+    //std::cout<<"server:"<<std::endl;
+
+    while(1) 
+    {
+
+        ssize_t nbytes;
+        nbytes = wait_for_packet(sock, rs_u.buffer, 40,
+                                 (struct sockaddr *) &src_addr, &addrlen);
+        std::cout<<static_cast<double>(rs_u.id_d_xyz[0])<<' '<<static_cast<double>(rs_u.id_d_xyz[1])<<' '<<static_cast<double>(rs_u.id_d_xyz[2])<<' '<<static_cast<double>(rs_u.id_d_xyz[3])
+        <<' '<<static_cast<double>(rs_u.id_d_xyz[4])<<std::endl;
+       // if(nbytes == 124){
+        //    for (int i = 0; i < 8; ++i) {
+       //         std::cout<<rs_u.rs.task_space_position[2]<<" "<<rs_u.rs.task_space_position[1]<<" "<<rs_u.rs.task_space_position[0]<<std::endl;
+       //     }
+       // }
+        sleep(1);
+    }
 
 }
 
@@ -550,10 +581,9 @@ int main(int argc, char **argv)
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Ready to grab");
 
-  int a = 10;
-  std::thread th1(Getpos, a); // for camera
+  std::thread th1(Get_pos); // for camera
 
-  th1.join();
+  th1.detach();
 
   rclcpp::spin(node);
   rclcpp::shutdown();
