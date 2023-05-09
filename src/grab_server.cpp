@@ -9,6 +9,11 @@
 #include <chrono>
 #include <iostream>
 
+#include "trac_ik/trac_ik.hpp"
+
+#include "kdl/chainiksolverpos_nr_jl.hpp"
+#include "trajectory_msgs/msg/joint_trajectory.hpp"
+
 // 手动维护句柄
 SOCKHANDLE m_sockhand_left = -1;
 SOCKHANDLE m_sockhand_right = -1;
@@ -163,6 +168,136 @@ int main(int argc, char **argv)
             });
   node->get_parameter("robot_description", urdf_xml);
 
+  TRAC_IK::TRAC_IK tracik_solver("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
+
+    KDL::Chain chain;
+    KDL::JntArray ll, ul;  // lower joint limits, upper joint limits
+
+    bool valid = tracik_solver.getKDLChain(chain);
+
+    if (!valid) {
+        RCLCPP_ERROR(node->get_logger(), "There was no valid KDL chain found");
+        return -1;
+    }
+
+    valid = tracik_solver.getKDLLimits(ll, ul);
+
+    if (!valid) {
+        RCLCPP_ERROR(node->get_logger(), "There were no valid KDL joint limits found");
+        return -1;
+    }
+
+    assert(chain.getNrOfJoints() == ll.data.size());
+    assert(chain.getNrOfJoints() == ul.data.size());
+
+    RCLCPP_INFO(node->get_logger(), "Using %d joints", chain.getNrOfJoints());
+
+ // Set up KDL IK
+    KDL::ChainFkSolverPos_recursive fk_solver(chain);  // Forward kin. solver
+    KDL::ChainIkSolverVel_pinv vik_solver(chain);  // PseudoInverse vel solver
+    // Joint Limit Solver
+    KDL::ChainIkSolverPos_NR_JL kdl_solver(chain, ll, ul, fk_solver, vik_solver, 1, 1e-3);
+    // 1 iteration per solve (will wrap in timed loop to compare with TRAC-IK)
+
+    KDL::JntArray nominal(chain.getNrOfJoints());
+
+    for (uint j = 0; j < nominal.data.size(); j++) {
+        nominal(j) = (ll(j) + ul(j)) / 2.0;
+    }
+
+    KDL::JntArray result;
+    KDL::Frame end_effector_pose;
+
+    fk_solver.JntToCart(nominal, end_effector_pose);
+
+    double roll, pitch, yaw;
+    end_effector_pose.M(0, 0) = -0.985;
+    end_effector_pose.M(0, 1) = -0.174;
+    end_effector_pose.M(0, 2) = 0.0;
+    end_effector_pose.M(1, 0) = 0.0;
+    end_effector_pose.M(1, 1) = 0.0;
+    end_effector_pose.M(1, 2) = -1.000;
+    end_effector_pose.M(2, 0) = 0.174;
+    end_effector_pose.M(2, 1) = -0.985;
+    end_effector_pose.M(2, 2) = 0;
+
+    end_effector_pose.p[0] = 0.334;
+    end_effector_pose.p[1] = -0.577;
+    end_effector_pose.p[2] = 0.489;
+
+    int rc = tracik_solver.CartToJnt(nominal, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(node->get_logger(), "%lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(node->get_logger(), "error !");
+    }
+
+    TRAC_IK::TRAC_IK tracik_solver_2("pelvis", "l_link7", urdf_xml, 0.05, 1e-3);
+
+    KDL::Chain chain_2;
+    KDL::JntArray ll_2, ul_2;
+
+    bool valid_2 = tracik_solver_2.getKDLChain(chain_2);
+
+    if (!valid_2) {
+        RCLCPP_ERROR(node->get_logger(), "There was no valid KDL chain found");
+        return -1;
+    }
+
+    valid_2 = tracik_solver_2.getKDLLimits(ll_2, ul_2);
+
+    if (!valid_2) {
+        RCLCPP_ERROR(node->get_logger(), "There were no valid KDL joint limits found");
+        return -1;
+    }
+
+    assert(chain_2.getNrOfJoints() == ll_2.data.size());
+    assert(chain_2.getNrOfJoints() == ul_2.data.size());
+
+    RCLCPP_INFO(node->get_logger(), "Using %d joints", chain_2.getNrOfJoints());
+
+    // Set up KDL IK
+    KDL::ChainFkSolverPos_recursive fk_solver_2(chain_2);  // Forward kin. solver
+    KDL::ChainIkSolverVel_pinv vik_solver_2(chain_2);  // PseudoInverse vel solver
+    // Joint Limit Solver
+    KDL::ChainIkSolverPos_NR_JL kdl_solver_2(chain_2, ll_2, ul_2, fk_solver_2, vik_solver_2, 1, 1e-3);
+    // 1 iteration per solve (will wrap in timed loop to compare with TRAC-IK)
+
+    KDL::JntArray nominal_2(chain_2.getNrOfJoints());
+
+    for (uint j = 0; j < nominal_2.data.size(); j++) {
+        nominal_2(j) = (ll_2(j) + ul_2(j)) / 2.0;
+    }
+
+    KDL::JntArray result_2;
+    KDL::Frame end_effector_pose_2;
+
+    fk_solver_2.JntToCart(nominal_2, end_effector_pose_2);
+
+    end_effector_pose_2.M(0, 0) = -0.985;
+    end_effector_pose_2.M(0, 1) = 0.174;
+    end_effector_pose_2.M(0, 2) = 0.0;
+    end_effector_pose_2.M(1, 0) = 0.0;
+    end_effector_pose_2.M(1, 1) = 0.0;
+    end_effector_pose_2.M(1, 2) = 1.000;
+    end_effector_pose_2.M(2, 0) = 0.174;
+    end_effector_pose_2.M(2, 1) = -0.985;
+    end_effector_pose_2.M(2, 2) = 0;
+
+    end_effector_pose_2.p[0] = -0.059;
+    end_effector_pose_2.p[1] = 0.861;
+    end_effector_pose_2.p[2] = 0.403;
+
+    rc = tracik_solver_2.CartToJnt(nominal_2, end_effector_pose_2, result_2);
+
+    if(rc >= 0){
+        RCLCPP_INFO(node->get_logger(), "l %lf %lf %lf %lf %lf %lf %lf", result_2(0), result_2(1), result_2(2),
+                    result_2(3), result_2(4), result_2(5), result_2(6));
+    }else{
+        RCLCPP_INFO(node->get_logger(), "l error !");
+    }
 
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Ready to grab");

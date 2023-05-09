@@ -19,6 +19,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(grab_interface REQUIRED)
+find_package(NLopt REQUIRED)
+find_package(orocos_kdl REQUIRED)
+find_package(trac_ik_lib REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -27,7 +31,7 @@ set(RM_INCLUDE_DIRS /opt/rm_robot/include)
 set(RM_LIBRARIES /opt/rm_robot/lib/libRM_Base.so)
 
 add_executable(grab_server src/grab_server.cpp)
-ament_target_dependencies(grab_server rclcpp grab_interface)
+ament_target_dependencies(grab_server rclcpp grab_interface orocos_kdl trac_ik_lib trajectory_msgs)
 add_executable(grab_client src/grab_client.cpp)
 ament_target_dependencies(grab_client rclcpp grab_interface)
 

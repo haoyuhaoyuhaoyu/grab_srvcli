@@ -206,7 +206,7 @@ typedef struct
 typedef void (*RM_Callback)(CallbackData data);
 #define  M_PI_RAD    0.0174533f
 #define  MI_PI_ANG   57.2957805f
-#define  PI          3.14159f
+//#define  PI          3.141592f
 
 #define  M_PI		 3.14159265358979323846
 #define  DELTA       0.26f   //关节判断角度差
