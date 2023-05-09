@@ -14,9 +14,21 @@
 #include "kdl/chainiksolverpos_nr_jl.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
+
 // 手动维护句柄
 SOCKHANDLE m_sockhand_left = -1;
 SOCKHANDLE m_sockhand_right = -1;
+
+std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_r;
+std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_l;
+
+float Joint[7];
+
+KDL::Chain Chain_R;
+KDL::JntArray Result;
+
+KDL::JntArray Nominal_r;
+KDL::JntArray Nominal_l;
 
 // 休眠(毫秒)
 void sleep_cp(int milliseconds)
@@ -60,6 +72,134 @@ void reset_joint_pos(SOCKHANDLE m_sockhand)
     }
 }
 
+void set_joint_pos_r(SOCKHANDLE m_sockhand)
+{
+    int ret = -1;
+    // 回零位
+    double roll, pitch, yaw;
+    KDL::Frame end_effector_pose;
+
+    end_effector_pose.M(0, 0) = -0.985;
+    end_effector_pose.M(0, 1) = -0.174;
+    end_effector_pose.M(0, 2) = 0.0;
+    end_effector_pose.M(1, 0) = 0.0;
+    end_effector_pose.M(1, 1) = 0.0;
+    end_effector_pose.M(1, 2) = -1.000;
+    end_effector_pose.M(2, 0) = 0.174;
+    end_effector_pose.M(2, 1) = -0.985;
+    end_effector_pose.M(2, 2) = 0;
+
+    end_effector_pose.p[0] = 0.334;
+    end_effector_pose.p[1] = -0.577;
+    end_effector_pose.p[2] = 0.489;
+
+    KDL::JntArray result;
+    int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "%lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "error !");
+    }
+    float joint[7] = {0};
+    for (int j = 0; j < 7; j++) {
+        joint[j] = result(j)*57.3;
+    }   
+    //ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
+void set_joint_pos_l(SOCKHANDLE m_sockhand)
+{
+    int ret = -1;
+    // 回零位
+    double roll, pitch, yaw;
+    KDL::Frame end_effector_pose;
+
+    end_effector_pose.M(0, 0) = -0.985;
+    end_effector_pose.M(0, 1) = 0.174;
+    end_effector_pose.M(0, 2) = 0.0;
+    end_effector_pose.M(1, 0) = 0.0;
+    end_effector_pose.M(1, 1) = 0.0;
+    end_effector_pose.M(1, 2) = 1.000;
+    end_effector_pose.M(2, 0) = 0.174;
+    end_effector_pose.M(2, 1) = -0.985;
+    end_effector_pose.M(2, 2) = 0;
+
+    end_effector_pose.p[0] = -0.059;
+    end_effector_pose.p[1] = 0.861;
+    end_effector_pose.p[2] = 0.403;
+
+    KDL::JntArray result;
+
+    int rc = Tracik_solver_l->CartToJnt(Nominal_l, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "l %lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "l error !");
+    }
+    float joint[7] = {0};
+    for (int j = 0; j < 7; j++) {
+        joint[j] = result(j)*57.3;
+    }   
+    //ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
+void get_matrix_r(SOCKHANDLE m_sockhand)
+{
+    int ret = -1;
+    // 回零位
+    double roll, pitch, yaw;
+    KDL::Frame end_effector_pose;
+
+    end_effector_pose.M(0, 0) = -0.985;
+    end_effector_pose.M(0, 1) = -0.174;
+    end_effector_pose.M(0, 2) = 0.0;
+    end_effector_pose.M(1, 0) = 0.0;
+    end_effector_pose.M(1, 1) = 0.0;
+    end_effector_pose.M(1, 2) = -1.000;
+    end_effector_pose.M(2, 0) = 0.174;
+    end_effector_pose.M(2, 1) = -0.985;
+    end_effector_pose.M(2, 2) = 0;
+
+    end_effector_pose.p[0] = 0.334;
+    end_effector_pose.p[1] = -0.577;
+    end_effector_pose.p[2] = 0.489;
+
+    KDL::JntArray result;
+    int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "%lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "error !");
+    }
+    float joint[7] = {0};
+    for (int j = 0; j < 7; j++) {
+        joint[j] = result(j)*57.3;
+    }   
+    //ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
+
 void reset_hand_pos(SOCKHANDLE m_sockhand)
 {
     int ret = -1;
@@ -97,6 +237,8 @@ void hand_grab(SOCKHANDLE m_sockhand)
     }
 }
 
+
+
 void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> request,
           std::shared_ptr<grab_interface::srv::GrabSrvData::Response> response)
 {
@@ -118,6 +260,14 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   else if (request->grab_type == 'c')
   {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
+    set_joint_pos_r(m_sockhand_right);
+    set_joint_pos_l(m_sockhand_left);
+  }
+  else if (request->grab_type == 't')
+  {
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
+    get_matrix_r(m_sockhand_right);
+    get_matrix_l(m_sockhand_left);
   }
   else if (request->grab_type == 'q')
   {
@@ -168,7 +318,8 @@ int main(int argc, char **argv)
             });
   node->get_parameter("robot_description", urdf_xml);
 
-  TRAC_IK::TRAC_IK tracik_solver("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
+   TRAC_IK::TRAC_IK tracik_solver("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
+   Tracik_solver_r  = std::make_shared<TRAC_IK::TRAC_IK>("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
 
     KDL::Chain chain;
     KDL::JntArray ll, ul;  // lower joint limits, upper joint limits
@@ -204,38 +355,18 @@ int main(int argc, char **argv)
     for (uint j = 0; j < nominal.data.size(); j++) {
         nominal(j) = (ll(j) + ul(j)) / 2.0;
     }
-
-    KDL::JntArray result;
+    Nominal_r = nominal;
     KDL::Frame end_effector_pose;
-
-    fk_solver.JntToCart(nominal, end_effector_pose);
-
-    double roll, pitch, yaw;
-    end_effector_pose.M(0, 0) = -0.985;
-    end_effector_pose.M(0, 1) = -0.174;
-    end_effector_pose.M(0, 2) = 0.0;
-    end_effector_pose.M(1, 0) = 0.0;
-    end_effector_pose.M(1, 1) = 0.0;
-    end_effector_pose.M(1, 2) = -1.000;
-    end_effector_pose.M(2, 0) = 0.174;
-    end_effector_pose.M(2, 1) = -0.985;
-    end_effector_pose.M(2, 2) = 0;
-
-    end_effector_pose.p[0] = 0.334;
-    end_effector_pose.p[1] = -0.577;
-    end_effector_pose.p[2] = 0.489;
-
-    int rc = tracik_solver.CartToJnt(nominal, end_effector_pose, result);
-
-    if(rc >= 0){
-        RCLCPP_INFO(node->get_logger(), "%lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
-                    result(3), result(4), result(5), result(6));
-    }else{
-        RCLCPP_INFO(node->get_logger(), "error !");
+    float jointtt[7];
+    Get_Joint_Degree (m_sockhand_right, jointtt);
+    for (uint j = 0; j < nominal.data.size(); j++) {
+        nominal(j) = jointtt[j]/57.3;
     }
+    fk_solver.JntToCart(nominal, end_effector_pose);
+    std::cout<<end_effector_pose.
 
     TRAC_IK::TRAC_IK tracik_solver_2("pelvis", "l_link7", urdf_xml, 0.05, 1e-3);
-
+    Tracik_solver_l = std::make_shared<TRAC_IK::TRAC_IK>("pelvis", "l_link7", urdf_xml, 0.05, 1e-3);
     KDL::Chain chain_2;
     KDL::JntArray ll_2, ul_2;
 
@@ -271,34 +402,9 @@ int main(int argc, char **argv)
         nominal_2(j) = (ll_2(j) + ul_2(j)) / 2.0;
     }
 
-    KDL::JntArray result_2;
-    KDL::Frame end_effector_pose_2;
+    Nominal_l = nominal_2;
 
-    fk_solver_2.JntToCart(nominal_2, end_effector_pose_2);
-
-    end_effector_pose_2.M(0, 0) = -0.985;
-    end_effector_pose_2.M(0, 1) = 0.174;
-    end_effector_pose_2.M(0, 2) = 0.0;
-    end_effector_pose_2.M(1, 0) = 0.0;
-    end_effector_pose_2.M(1, 1) = 0.0;
-    end_effector_pose_2.M(1, 2) = 1.000;
-    end_effector_pose_2.M(2, 0) = 0.174;
-    end_effector_pose_2.M(2, 1) = -0.985;
-    end_effector_pose_2.M(2, 2) = 0;
-
-    end_effector_pose_2.p[0] = -0.059;
-    end_effector_pose_2.p[1] = 0.861;
-    end_effector_pose_2.p[2] = 0.403;
-
-    rc = tracik_solver_2.CartToJnt(nominal_2, end_effector_pose_2, result_2);
-
-    if(rc >= 0){
-        RCLCPP_INFO(node->get_logger(), "l %lf %lf %lf %lf %lf %lf %lf", result_2(0), result_2(1), result_2(2),
-                    result_2(3), result_2(4), result_2(5), result_2(6));
-    }else{
-        RCLCPP_INFO(node->get_logger(), "l error !");
-    }
-
+    //fk_solver_2.JntToCart(nominal_2, end_effector_pose_2);
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Ready to grab");
 
