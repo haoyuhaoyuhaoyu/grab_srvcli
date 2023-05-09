@@ -303,10 +303,6 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   {
     set_end_pos_r(m_sockhand_right);
   }
-  else if (request->grab_type == 'r')
-  {
-    set_end_pos_ttt(m_sockhand_right);
-  }
   else if (request->grab_type == 'q')
   {
     rclcpp::shutdown();
