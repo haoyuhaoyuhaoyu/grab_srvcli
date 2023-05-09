@@ -18,10 +18,27 @@
 // 手动维护句柄
 SOCKHANDLE m_sockhand_left = -1;
 SOCKHANDLE m_sockhand_right = -1;
+//udp
+union robot_state_u{
+    double id_d_xyz[5];
+    uint8_t buffer[40];
+};
 
+struct robot_state_req{
+    uint16_t cmd_no;
+    uint16_t length;
+    uint32_t counter;
+};
+
+union robot_state_req_u{
+    double id_d_xyz[5];
+    uint8_t buffer[40];
+};
+//tracik
 std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_r;
 std::shared_ptr<TRAC_IK::TRAC_IK> Tracik_solver_l;
 
+std::shared_ptr<KDL::ChainFkSolverPos_recursive> fk_solver;
 float Joint[7];
 
 KDL::Chain Chain_R;
@@ -198,20 +215,64 @@ void set_end_pos_r(SOCKHANDLE m_sockhand)
     end_effector_pose.M(2, 1) = -0.91606;
     end_effector_pose.M(2, 2) = -0.329142;
 
-     end_effector_pose.p[0] = 0.136268;
-     end_effector_pose.p[1] = -0.438657;
-     end_effector_pose.p[2] = -0.05049;
+     end_effector_pose.p[0] = 0.136268 + 0.02;
+     end_effector_pose.p[1] = -0.438657 - 0.01;
+     end_effector_pose.p[2] = -0.05049 + 0.05;
     // end_effector_pose.p[0] = 0.46;
     //  end_effector_pose.p[1] = -0.27;
     //  end_effector_pose.p[2] = 0.27049;
 
 
     KDL::JntArray result;
-    float temp_joint[7] = {-88, -64, 86, -24, -1.7, -57, -77};
+    float temp_joint[7] = {0};
+    Get_Joint_Degree (m_sockhand, temp_joint);
     for(int i=0; i<7; i++)
     {
         Nominal_r(i) = temp_joint[i]/57.3;
     }
+
+    int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r %lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r error !");
+        return;
+    }
+    float joint[7] = {0};
+    for (int j = 0; j < 7; j++) {
+        joint[j] = result(j)*57.3;
+    }   
+    ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("set_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
+void set_end_relative_pos_r(SOCKHANDLE m_sockhand, float *pos)
+{
+    int ret = -1;
+    // 回零位
+    double roll, pitch, yaw;
+    KDL::Frame end_effector_pose;
+    // current pos
+    float temp_joint[7] = {0};
+    Get_Joint_Degree (m_sockhand, temp_joint);
+    for(int i=0; i<7; i++)
+    {
+        Nominal_r(i) = temp_joint[i]/57.3;
+    }
+
+    fk_solver->JntToCart(Nominal_r, end_effector_pose);
+
+    end_effector_pose.p[0] = end_effector_pose.p[0]+pos[0];
+    end_effector_pose.p[1] = end_effector_pose.p[1]+pos[1];
+    end_effector_pose.p[2] = end_effector_pose.p[2]+pos[2];
+
+    KDL::JntArray result;
 
     int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
 
@@ -303,6 +364,36 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   {
     set_end_pos_r(m_sockhand_right);
   }
+  else if (request->grab_type == 'i')
+  {
+    float pos[3] = {0, 0, 0.01};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 'k')
+  {
+    float pos[3] = {0, 0, -0.01};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 'j')
+  {
+    float pos[3] = {0, 0.01, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 'l')
+  {
+    float pos[3] = {0, -0.01, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 'u')
+  {
+    float pos[3] = {0.01, 0, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 'o')
+  {
+    float pos[3] = {-0.01, 0, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+  }
   else if (request->grab_type == 'q')
   {
     rclcpp::shutdown();
@@ -378,10 +469,12 @@ int main(int argc, char **argv)
     RCLCPP_INFO(node->get_logger(), "Using %d joints", chain.getNrOfJoints());
 
  // Set up KDL IK
-    KDL::ChainFkSolverPos_recursive fk_solver(chain);  // Forward kin. solver
+    //KDL::ChainFkSolverPos_recursive fk_solver(chain);  // Forward kin. solver
+    fk_solver = std::make_shared<KDL::ChainFkSolverPos_recursive>(chain);
     KDL::ChainIkSolverVel_pinv vik_solver(chain);  // PseudoInverse vel solver
     // Joint Limit Solver
-    KDL::ChainIkSolverPos_NR_JL kdl_solver(chain, ll, ul, fk_solver, vik_solver, 1, 1e-3);
+    
+    KDL::ChainIkSolverPos_NR_JL kdl_solver(chain, ll, ul, *fk_solver, vik_solver, 1, 1e-3);
     // 1 iteration per solve (will wrap in timed loop to compare with TRAC-IK)
 
     KDL::JntArray nominal(chain.getNrOfJoints());
@@ -396,7 +489,7 @@ int main(int argc, char **argv)
     for (uint j = 0; j < nominal.data.size(); j++) {
         nominal(j) = jointtt[j]/57.3;
     }
-    fk_solver.JntToCart(nominal, end_effector_pose);
+    fk_solver->JntToCart(nominal, end_effector_pose);
     std::cout<<"right matrix"<<std::endl;
     std::cout<<end_effector_pose.M(0, 0)<<end_effector_pose.M(0, 1)<<end_effector_pose.M(0, 2)<<std::endl;
     std::cout<<end_effector_pose.M(1, 0)<<end_effector_pose.M(1, 1)<<end_effector_pose.M(1, 2)<<std::endl;
@@ -447,7 +540,7 @@ int main(int argc, char **argv)
     for (uint j = 0; j < nominal.data.size(); j++) {
         nominal(j) = jointtt[j]/57.3;
     }
-    fk_solver.JntToCart(nominal, end_effector_pose);
+    fk_solver_2.JntToCart(nominal, end_effector_pose);
     std::cout<<"left matrix"<<std::endl;
     std::cout<<end_effector_pose.M(0, 0)<<end_effector_pose.M(0, 1)<<end_effector_pose.M(0, 2)<<std::endl;
     std::cout<<end_effector_pose.M(1, 0)<<end_effector_pose.M(1, 1)<<end_effector_pose.M(1, 2)<<std::endl;
