@@ -14,7 +14,12 @@
 #include "kdl/chainiksolverpos_nr_jl.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
+#include <Eigen/Dense>
+
+
 #include "udp.h"
+
+using Eigen::MatrixXd;
 
 // 手动维护句柄
 SOCKHANDLE m_sockhand_left = -1;
@@ -261,6 +266,83 @@ void set_end_pos_r(SOCKHANDLE m_sockhand)
     }
 }
 
+void rot_end_pos_r(SOCKHANDLE m_sockhand, float degree)
+{
+    int ret = -1;
+    // 回零位
+    double roll, pitch, yaw;
+    KDL::Frame end_effector_pose;
+
+    MatrixXd rot_matrix(3,3);
+    rot_matrix<<1,0,0,0,cos(degree/57.3),sin(degree/57.3),0,-sin(degree/57.3),cos(degree/57.3);
+
+    // current pos
+    float temp_joint[7] = {0};
+    Get_Joint_Degree (m_sockhand, temp_joint);
+    for(int i=0; i<7; i++)
+    {
+        Nominal_r(i) = temp_joint[i]/57.3;
+    }
+
+    fk_solver->JntToCart(Nominal_r, end_effector_pose);
+
+    MatrixXd end_matrix(3,3);
+    end_matrix<<end_effector_pose.M(0, 0),end_effector_pose.M(0, 1),end_effector_pose.M(0, 2),
+    end_effector_pose.M(1, 0),end_effector_pose.M(1, 1),end_effector_pose.M(1, 2),
+    end_effector_pose.M(2, 0),end_effector_pose.M(2, 1),end_effector_pose.M(2, 2);
+
+    end_matrix = rot_matrix*end_matrix;
+    end_effector_pose.M(0, 0) = end_matrix(0,0);
+    end_effector_pose.M(0, 1) = end_matrix(0,1);
+    end_effector_pose.M(0, 2) = end_matrix(0,2);
+    end_effector_pose.M(1, 0) = end_matrix(1,0);
+    end_effector_pose.M(1, 1) = end_matrix(1,1);
+    end_effector_pose.M(1, 2) = end_matrix(1,2);
+    end_effector_pose.M(2, 0) = end_matrix(2,0);
+    end_effector_pose.M(2, 1) = end_matrix(2,1);
+    end_effector_pose.M(2, 2) = end_matrix(2,2);
+
+    // init pos
+    //  end_effector_pose.p[0] = 0.136268 + 0.02;
+    //  end_effector_pose.p[1] = -0.438657 - 0.01;
+    //  end_effector_pose.p[2] = -0.05049 + 0.05;
+    
+    // end_effector_pose.p[0] = 0.46;
+    //  end_effector_pose.p[1] = -0.27;
+    //  end_effector_pose.p[2] = 0.27049;
+    end_effector_pose.p[0] = rs_u.id_d_xyz[2];
+    end_effector_pose.p[1] = rs_u.id_d_xyz[3];
+    end_effector_pose.p[2] = rs_u.id_d_xyz[4]-0.03;
+
+
+    KDL::JntArray result;
+    Get_Joint_Degree (m_sockhand, temp_joint);
+    for(int i=0; i<7; i++)
+    {
+        Nominal_r(i) = temp_joint[i]/57.3;
+    }
+
+    int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
+
+    if(rc >= 0){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r %lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+                    result(3), result(4), result(5), result(6));
+    }else{
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r error !");
+        return;
+    }
+    float joint[7] = {0};
+    for (int j = 0; j < 7; j++) {
+        joint[j] = result(j)*57.3;
+    }   
+    ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("set_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
 void set_end_relative_pos_r(SOCKHANDLE m_sockhand, float *pos)
 {
     int ret = -1;
@@ -371,7 +453,13 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   }
   else if (request->grab_type == 't')
   {
-    set_end_pos_r(m_sockhand_right);
+    //set_end_pos_r(m_sockhand_right);
+    rot_end_pos_r(m_sockhand_right, 10);
+  }
+  else if (request->grab_type == 'y')
+  {
+    //set_end_pos_r(m_sockhand_right);
+    rot_end_pos_r(m_sockhand_right, -10);
   }
   else if (request->grab_type == 'i')
   {
@@ -402,6 +490,27 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   {
     float pos[3] = {-0.01, 0, 0};
     set_end_relative_pos_r(m_sockhand_right, pos);
+  }
+  else if (request->grab_type == 's')
+  {
+    
+    float pos[3] = {0, 0, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep(2);
+    hand_grab(m_sockhand_right);
+    for(int i =0; i<3; i++)
+    {
+    pos[2] = 0.04;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep(1);
+    pos[2] = -0.04;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep(1);
+    }
+    pos[0] = 0;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    reset_hand_pos(m_sockhand_right);
+    
   }
   else if (request->grab_type == 'q')
   {
