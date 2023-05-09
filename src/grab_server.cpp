@@ -71,6 +71,30 @@ void reset_joint_pos(SOCKHANDLE m_sockhand)
         return;
     }
 }
+void reset_joint_pos_r(SOCKHANDLE m_sockhand)
+{
+    int ret = -1;
+    // 回零位
+    float joint[7] = {-88, -64, 86, -24, -1.7, -57, -77};
+    ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+void reset_joint_pos_l(SOCKHANDLE m_sockhand)
+{
+    int ret = -1;
+    // 回零位
+    float joint[7] = {103.344, 64.864, -89.756, 21.254, 10.989, 65.736, -112.714};
+    ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
 
 void set_joint_pos_r(SOCKHANDLE m_sockhand)
 {
@@ -79,15 +103,15 @@ void set_joint_pos_r(SOCKHANDLE m_sockhand)
     double roll, pitch, yaw;
     KDL::Frame end_effector_pose;
 
-    end_effector_pose.M(0, 0) = -0.985;
-    end_effector_pose.M(0, 1) = -0.174;
-    end_effector_pose.M(0, 2) = 0.0;
-    end_effector_pose.M(1, 0) = 0.0;
-    end_effector_pose.M(1, 1) = 0.0;
-    end_effector_pose.M(1, 2) = -1.000;
-    end_effector_pose.M(2, 0) = 0.174;
-    end_effector_pose.M(2, 1) = -0.985;
-    end_effector_pose.M(2, 2) = 0;
+    end_effector_pose.M(0, 0) = 0.0918854;
+    end_effector_pose.M(0, 1) = -0.316273;
+    end_effector_pose.M(0, 2) = 0.944208;
+    end_effector_pose.M(1, 0) = -0.969049;
+    end_effector_pose.M(1, 1) = -0.24659;
+    end_effector_pose.M(1, 2) = 0.0117049;
+    end_effector_pose.M(2, 0) = 0.22913;
+    end_effector_pose.M(2, 1) = -0.91606;
+    end_effector_pose.M(2, 2) = -0.329142;
 
     end_effector_pose.p[0] = 0.334;
     end_effector_pose.p[1] = -0.577;
@@ -121,15 +145,15 @@ void set_joint_pos_l(SOCKHANDLE m_sockhand)
     double roll, pitch, yaw;
     KDL::Frame end_effector_pose;
 
-    end_effector_pose.M(0, 0) = -0.985;
-    end_effector_pose.M(0, 1) = 0.174;
-    end_effector_pose.M(0, 2) = 0.0;
-    end_effector_pose.M(1, 0) = 0.0;
-    end_effector_pose.M(1, 1) = 0.0;
-    end_effector_pose.M(1, 2) = 1.000;
-    end_effector_pose.M(2, 0) = 0.174;
-    end_effector_pose.M(2, 1) = -0.985;
-    end_effector_pose.M(2, 2) = 0;
+    end_effector_pose.M(0, 0) = -0.156173;
+    end_effector_pose.M(0, 1) = -0.169;
+    end_effector_pose.M(0, 2) = -0.973164;
+    end_effector_pose.M(1, 0) = -0.982825;
+    end_effector_pose.M(1, 1) = 0.124654;
+    end_effector_pose.M(1, 2) = 0.136076;
+    end_effector_pose.M(2, 0) = 0.0983117;
+    end_effector_pose.M(2, 1) = 0.977702;
+    end_effector_pose.M(2, 2) = -0.185565;
 
     end_effector_pose.p[0] = -0.059;
     end_effector_pose.p[1] = 0.861;
@@ -157,47 +181,59 @@ void set_joint_pos_l(SOCKHANDLE m_sockhand)
     }
 }
 
-void get_matrix_r(SOCKHANDLE m_sockhand)
+void set_end_pos_r(SOCKHANDLE m_sockhand)
 {
     int ret = -1;
     // 回零位
     double roll, pitch, yaw;
     KDL::Frame end_effector_pose;
 
-    end_effector_pose.M(0, 0) = -0.985;
-    end_effector_pose.M(0, 1) = -0.174;
-    end_effector_pose.M(0, 2) = 0.0;
-    end_effector_pose.M(1, 0) = 0.0;
-    end_effector_pose.M(1, 1) = 0.0;
-    end_effector_pose.M(1, 2) = -1.000;
-    end_effector_pose.M(2, 0) = 0.174;
-    end_effector_pose.M(2, 1) = -0.985;
-    end_effector_pose.M(2, 2) = 0;
+    end_effector_pose.M(0, 0) = 0.0918854;
+    end_effector_pose.M(0, 1) = -0.316273;
+    end_effector_pose.M(0, 2) = 0.944208;
+    end_effector_pose.M(1, 0) = -0.969049;
+    end_effector_pose.M(1, 1) = -0.24659;
+    end_effector_pose.M(1, 2) = 0.0117049;
+    end_effector_pose.M(2, 0) = 0.22913;
+    end_effector_pose.M(2, 1) = -0.91606;
+    end_effector_pose.M(2, 2) = -0.329142;
 
-    end_effector_pose.p[0] = 0.334;
-    end_effector_pose.p[1] = -0.577;
-    end_effector_pose.p[2] = 0.489;
+     end_effector_pose.p[0] = 0.136268;
+     end_effector_pose.p[1] = -0.438657;
+     end_effector_pose.p[2] = -0.05049;
+    // end_effector_pose.p[0] = 0.46;
+    //  end_effector_pose.p[1] = -0.27;
+    //  end_effector_pose.p[2] = 0.27049;
+
 
     KDL::JntArray result;
+    float temp_joint[7] = {-88, -64, 86, -24, -1.7, -57, -77};
+    for(int i=0; i<7; i++)
+    {
+        Nominal_r(i) = temp_joint[i]/57.3;
+    }
+
     int rc = Tracik_solver_r->CartToJnt(Nominal_r, end_effector_pose, result);
 
     if(rc >= 0){
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "%lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r %lf %lf %lf %lf %lf %lf %lf", result(0), result(1), result(2),
                     result(3), result(4), result(5), result(6));
     }else{
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "error !");
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "r error !");
+        return;
     }
     float joint[7] = {0};
     for (int j = 0; j < 7; j++) {
         joint[j] = result(j)*57.3;
     }   
-    //ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
+    ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
     if(ret != 0)
     {
-        printf("reset_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        printf("set_joint_pos Movej_Cmd 1:%d\r\n",ret);
         return;
     }
 }
+
 
 
 void reset_hand_pos(SOCKHANDLE m_sockhand)
@@ -265,9 +301,11 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   }
   else if (request->grab_type == 't')
   {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
-    get_matrix_r(m_sockhand_right);
-    get_matrix_l(m_sockhand_left);
+    set_end_pos_r(m_sockhand_right);
+  }
+  else if (request->grab_type == 'r')
+  {
+    set_end_pos_ttt(m_sockhand_right);
   }
   else if (request->grab_type == 'q')
   {
@@ -290,19 +328,19 @@ int main(int argc, char **argv)
   rclcpp::init(argc, argv);
   
    // for rm init
-//  RM_API_Init(MCallback);
+  RM_API_Init(MCallback);
    // 初始化API, 注册回调函数
-//  RM_API_Init(MCallback);
+  RM_API_Init(MCallback);
    // 连接服务器
-//  m_sockhand_right = Arm_Socket_Start((char*)"192.168.1.17", 8080, ARM_75, 5000);
-//  m_sockhand_left = Arm_Socket_Start((char*)"192.168.1.18", 8080, ARM_75, 5000);
-//   // reset pos
-//   reset_joint_pos(m_sockhand_left);
-//   reset_joint_pos(m_sockhand_right);
-//  Set_Tool_Voltage(m_sockhand_right, 3, 1);
-//  Set_Tool_Voltage(m_sockhand_left, 3, 1);
-//  reset_hand_pos(m_sockhand_right);
-//  reset_hand_pos(m_sockhand_left);
+  m_sockhand_right = Arm_Socket_Start((char*)"192.168.1.17", 8080, ARM_75, 5000);
+  m_sockhand_left = Arm_Socket_Start((char*)"192.168.1.18", 8080, ARM_75, 5000);
+   // reset pos
+  reset_joint_pos_l(m_sockhand_left);
+  reset_joint_pos_r(m_sockhand_right);
+  Set_Tool_Voltage(m_sockhand_right, 3, 1);
+  Set_Tool_Voltage(m_sockhand_left, 3, 1);
+  reset_hand_pos(m_sockhand_right);
+  reset_hand_pos(m_sockhand_left);
 
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("grab_server");
 
@@ -318,20 +356,20 @@ int main(int argc, char **argv)
             });
   node->get_parameter("robot_description", urdf_xml);
 
-   TRAC_IK::TRAC_IK tracik_solver("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
+   //TRAC_IK::TRAC_IK tracik_solver("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
    Tracik_solver_r  = std::make_shared<TRAC_IK::TRAC_IK>("pelvis", "r_link7", urdf_xml, 0.05, 1e-3);
 
     KDL::Chain chain;
     KDL::JntArray ll, ul;  // lower joint limits, upper joint limits
 
-    bool valid = tracik_solver.getKDLChain(chain);
+    bool valid = Tracik_solver_r->getKDLChain(chain);
 
     if (!valid) {
         RCLCPP_ERROR(node->get_logger(), "There was no valid KDL chain found");
         return -1;
     }
 
-    valid = tracik_solver.getKDLLimits(ll, ul);
+    valid = Tracik_solver_r->getKDLLimits(ll, ul);
 
     if (!valid) {
         RCLCPP_ERROR(node->get_logger(), "There were no valid KDL joint limits found");
@@ -363,7 +401,12 @@ int main(int argc, char **argv)
         nominal(j) = jointtt[j]/57.3;
     }
     fk_solver.JntToCart(nominal, end_effector_pose);
-    std::cout<<end_effector_pose.
+    std::cout<<"right matrix"<<std::endl;
+    std::cout<<end_effector_pose.M(0, 0)<<end_effector_pose.M(0, 1)<<end_effector_pose.M(0, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(1, 0)<<end_effector_pose.M(1, 1)<<end_effector_pose.M(1, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(2, 0)<<end_effector_pose.M(2, 1)<<end_effector_pose.M(2, 2)<<std::endl;
+    std::cout<<"right pos"<<std::endl;
+    std::cout<<end_effector_pose.p(0)<<"  "<<end_effector_pose.p(1)<<"  "<<end_effector_pose.p(2)<<std::endl;
 
     TRAC_IK::TRAC_IK tracik_solver_2("pelvis", "l_link7", urdf_xml, 0.05, 1e-3);
     Tracik_solver_l = std::make_shared<TRAC_IK::TRAC_IK>("pelvis", "l_link7", urdf_xml, 0.05, 1e-3);
@@ -403,6 +446,16 @@ int main(int argc, char **argv)
     }
 
     Nominal_l = nominal_2;
+
+    Get_Joint_Degree (m_sockhand_left, jointtt);
+    for (uint j = 0; j < nominal.data.size(); j++) {
+        nominal(j) = jointtt[j]/57.3;
+    }
+    fk_solver.JntToCart(nominal, end_effector_pose);
+    std::cout<<"left matrix"<<std::endl;
+    std::cout<<end_effector_pose.M(0, 0)<<end_effector_pose.M(0, 1)<<end_effector_pose.M(0, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(1, 0)<<end_effector_pose.M(1, 1)<<end_effector_pose.M(1, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(2, 0)<<end_effector_pose.M(2, 1)<<end_effector_pose.M(2, 2)<<std::endl;
 
     //fk_solver_2.JntToCart(nominal_2, end_effector_pose_2);
 
