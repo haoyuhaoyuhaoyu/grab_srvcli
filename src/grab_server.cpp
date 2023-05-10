@@ -101,7 +101,8 @@ void reset_joint_pos_r(SOCKHANDLE m_sockhand)
 {
     int ret = -1;
     // 回零位
-    float joint[7] = {-88, -64, 86, -24, -1.7, -57, -77};
+    //float joint[7] = {-88, -64, 86, -24, -1.7, -57, -77};  //for walk
+    float joint[7] = {-89.9, -61.4, 91.8, -41, 2.52, -50, -90}; //for grab
     ret = Movej_Cmd(m_sockhand, joint, 20, 0, 1);
     if(ret != 0)
     {
@@ -207,6 +208,8 @@ void set_joint_pos_l(SOCKHANDLE m_sockhand)
     }
 }
 
+
+
 void set_end_pos_r(SOCKHANDLE m_sockhand)
 {
     int ret = -1;
@@ -214,15 +217,15 @@ void set_end_pos_r(SOCKHANDLE m_sockhand)
     double roll, pitch, yaw;
     KDL::Frame end_effector_pose;
 
-    end_effector_pose.M(0, 0) = 0.0918854;
-    end_effector_pose.M(0, 1) = -0.316273;
-    end_effector_pose.M(0, 2) = 0.944208;
-    end_effector_pose.M(1, 0) = -0.969049;
-    end_effector_pose.M(1, 1) = -0.24659;
-    end_effector_pose.M(1, 2) = 0.0117049;
-    end_effector_pose.M(2, 0) = 0.22913;
-    end_effector_pose.M(2, 1) = -0.91606;
-    end_effector_pose.M(2, 2) = -0.329142;
+    end_effector_pose.M(0, 0) = 0.0139876;
+    end_effector_pose.M(0, 1) = -0.133365;
+    end_effector_pose.M(0, 2) = 0.990968;
+    end_effector_pose.M(1, 0) = -0.889726;
+    end_effector_pose.M(1, 1) = -0.453908;
+    end_effector_pose.M(1, 2) = -0.0485285;
+    end_effector_pose.M(2, 0) = 0.45628;
+    end_effector_pose.M(2, 1) = -0.881012;
+    end_effector_pose.M(2, 2) = -0.125007;
 
     // init pos
     //  end_effector_pose.p[0] = 0.136268 + 0.02;
@@ -232,9 +235,9 @@ void set_end_pos_r(SOCKHANDLE m_sockhand)
     // end_effector_pose.p[0] = 0.46;
     //  end_effector_pose.p[1] = -0.27;
     //  end_effector_pose.p[2] = 0.27049;
-    end_effector_pose.p[0] = rs_u.id_d_xyz[2];
-    end_effector_pose.p[1] = rs_u.id_d_xyz[3];
-    end_effector_pose.p[2] = rs_u.id_d_xyz[4]-0.03;
+    end_effector_pose.p[0] = rs_u.id_d_xyz[2]-0.15;
+    end_effector_pose.p[1] = rs_u.id_d_xyz[3]-0.08;
+    end_effector_pose.p[2] = rs_u.id_d_xyz[4]-0.08;
 
 
     KDL::JntArray result;
@@ -386,7 +389,52 @@ void set_end_relative_pos_r(SOCKHANDLE m_sockhand, float *pos)
     }
 }
 
+void set_end_relative_rot_r(SOCKHANDLE m_sockhand, float degree)
+{
+    int ret = -1;
+    // current pos
+    float temp_joint[7] = {0};
+    Get_Joint_Degree (m_sockhand, temp_joint);
 
+    temp_joint[6] = temp_joint[6] + degree;
+
+    ret = Movej_Cmd(m_sockhand, temp_joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("set_joint_pos Movej_Cmd 1:%d\r\n",ret);
+        return;
+    }
+}
+
+void set_joint_relative_rot_r(SOCKHANDLE m_sockhand, int id, float degree)
+{
+    int ret = -1;
+    // current pos
+    float temp_joint[7] = {0};
+    Get_Joint_Degree (m_sockhand, temp_joint);
+
+    temp_joint[id] = temp_joint[id] + degree;
+
+    ret = Movej_Cmd(m_sockhand, temp_joint, 20, 0, 1);
+    if(ret != 0)
+    {
+        printf("set_arm_relative_rot_r Movej_Cmd r:%d\r\n",ret);
+        return;
+    }
+}
+
+void set_thumb_pos(SOCKHANDLE m_sockhand, int degree)
+{
+    int ret = -1;
+    // 回零位
+    int joint[6] = {-1, -1, -1, -1, -1, degree};
+    ret = Set_Hand_Angle(m_sockhand, joint, 1);
+    if(ret != 0)
+    {
+        printf("reset_hand_pos Set_Hand_Angle:%d\r\n",ret);
+        return;
+    }
+}
 
 void reset_hand_pos(SOCKHANDLE m_sockhand)
 {
@@ -425,6 +473,50 @@ void hand_grab(SOCKHANDLE m_sockhand)
     }
 }
 
+void hand_grab_process(SOCKHANDLE m_sockhand)
+{
+    //3
+    int hand_speed, hand_force;
+    int ret = -1;
+    int hand_angle[6];
+    hand_speed = 300;
+    hand_force = 200;
+    hand_angle[0] = 800; hand_angle[1] = 800; hand_angle[2] = 800;
+    hand_angle[3] = 800; hand_angle[4] = 900;  hand_angle[5] = -1;
+    ret = Set_Hand_Speed(m_sockhand, hand_speed,1);
+    ret = Set_Hand_Force (m_sockhand, hand_force, 1);
+    ret = Set_Hand_Angle (m_sockhand, hand_angle, 1);
+    sleep_cp(500);
+    //4
+    for(int i = 0;i<=2;i++)
+    {
+        hand_speed = 500;
+        hand_force = 500;
+        hand_angle[0] = 500; hand_angle[1] = 500; hand_angle[2] = 500;
+        hand_angle[3] = 500; hand_angle[4] = 500;  hand_angle[5] = -1;
+        ret = Set_Hand_Speed(m_sockhand, hand_speed,1);
+        ret = Set_Hand_Force (m_sockhand, hand_force, 1);
+        ret = Set_Hand_Angle (m_sockhand, hand_angle, 1);
+        sleep_cp(500);
+    }
+}
+
+void hand_release_process(SOCKHANDLE m_sockhand)
+{
+    int hand_speed, hand_force;
+    int ret = -1;
+    int hand_angle[6];
+    hand_speed = 100;
+    hand_force = 200;
+    hand_angle[0] = 1000; hand_angle[1] = 1000; hand_angle[2] = 1000;
+    hand_angle[3] = 1000; hand_angle[4] = 1000;  hand_angle[5] = -1;
+    ret = Set_Hand_Speed(m_sockhand, hand_speed,1);
+    ret = Set_Hand_Force (m_sockhand, hand_force, 1);
+    ret = Set_Hand_Angle (m_sockhand, hand_angle, 1);
+    sleep_cp(500);
+
+}
+
 
 
 void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> request,
@@ -433,33 +525,83 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
   
   if (request->grab_type == 'a')
   {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
-    response->if_success = 1;
-    hand_grab(m_sockhand_left);
-    hand_grab(m_sockhand_right);
+    set_end_relative_rot_r(m_sockhand_right, 5);
   }
   else if (request->grab_type == 'b')
   {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
-    response->if_success = 1;
-    reset_hand_pos(m_sockhand_left);
-    reset_hand_pos(m_sockhand_right);
+    set_end_relative_rot_r(m_sockhand_right, -5);
+  }
+  else if (request->grab_type == 'z')
+  {
+    set_joint_relative_rot_r(m_sockhand_right, 5, 5);
+  }
+  else if (request->grab_type == 'x')
+  {
+    set_joint_relative_rot_r(m_sockhand_right, 5, -5);
   }
   else if (request->grab_type == 'c')
   {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "grab type: %c", request->grab_type);
-    set_joint_pos_r(m_sockhand_right);
-    set_joint_pos_l(m_sockhand_left);
   }
   else if (request->grab_type == 't')
   {
-    //set_end_pos_r(m_sockhand_right);
-    rot_end_pos_r(m_sockhand_right, 10);
+    //set_joint_relative_rot_r(m_sockhand_right, 5, -15);
+    //sleep(1);
+    
+    set_end_pos_r(m_sockhand_right);
+    sleep(1);
+
+    set_thumb_pos(m_sockhand_right, 100);
+    sleep(1);
+
+    float pos[3] = {0.04, 0.05, 0};
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep(1);
+
+    hand_grab_process(m_sockhand_right);
+    sleep(1);
+
+    pos[0]=0; pos[1]=0; pos[2]=0.1;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep(1);
+
+    set_end_relative_rot_r(m_sockhand_right, -45);
+
+    pos[0]=0; pos[1]=0.04; pos[2]=0;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+
+    set_end_relative_rot_r(m_sockhand_right, -55);
+    sleep(1);
+
+    set_end_relative_rot_r(m_sockhand_right, 55);
+
+    pos[0]=0.04; pos[1]=-0.06; pos[2]=0;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+
+    set_end_relative_rot_r(m_sockhand_right, 45);
+
+    pos[0]=0; pos[1]=0; pos[2]=-0.1;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+
+    hand_release_process(m_sockhand_right);
+
+    pos[0]=-0.08; pos[1]=-0.08; pos[2]=0;
+    set_end_relative_pos_r(m_sockhand_right, pos);
+
+    reset_hand_pos(m_sockhand_right);
+
+    reset_joint_pos_r(m_sockhand_right);
+
+    sleep(1);
+
+
+
+    //rot_end_pos_r(m_sockhand_right, 10);
   }
   else if (request->grab_type == 'y')
   {
-    //set_end_pos_r(m_sockhand_right);
-    rot_end_pos_r(m_sockhand_right, -10);
+    set_end_pos_r(m_sockhand_right);
+    //rot_end_pos_r(m_sockhand_right, -10);
   }
   else if (request->grab_type == 'i')
   {
@@ -491,7 +633,7 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
     float pos[3] = {-0.01, 0, 0};
     set_end_relative_pos_r(m_sockhand_right, pos);
   }
-  else if (request->grab_type == 's')
+  else if (request->grab_type == 's') //shake hand
   {
     
     float pos[3] = {0, 0, 0};
@@ -631,9 +773,9 @@ int main(int argc, char **argv)
     }
     fk_solver->JntToCart(nominal, end_effector_pose);
     std::cout<<"right matrix"<<std::endl;
-    std::cout<<end_effector_pose.M(0, 0)<<end_effector_pose.M(0, 1)<<end_effector_pose.M(0, 2)<<std::endl;
-    std::cout<<end_effector_pose.M(1, 0)<<end_effector_pose.M(1, 1)<<end_effector_pose.M(1, 2)<<std::endl;
-    std::cout<<end_effector_pose.M(2, 0)<<end_effector_pose.M(2, 1)<<end_effector_pose.M(2, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(0, 0)<<"  "<<end_effector_pose.M(0, 1)<<"  "<<end_effector_pose.M(0, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(1, 0)<<"  "<<end_effector_pose.M(1, 1)<<"  "<<end_effector_pose.M(1, 2)<<std::endl;
+    std::cout<<end_effector_pose.M(2, 0)<<"  "<<end_effector_pose.M(2, 1)<<"  "<<end_effector_pose.M(2, 2)<<std::endl;
     std::cout<<"right pos"<<std::endl;
     std::cout<<end_effector_pose.p(0)<<"  "<<end_effector_pose.p(1)<<"  "<<end_effector_pose.p(2)<<std::endl;
 
