@@ -403,7 +403,7 @@ void set_end_relative_pos_r(SOCKHANDLE m_sockhand, float *pos)
     }
 }
 
-void set_end_relative_rot_r(SOCKHANDLE m_sockhand, float degree)
+void set_end_relative_rot_r(SOCKHANDLE m_sockhand, float degree, int speed=20)
 {
     int ret = -1;
     // current pos
@@ -412,7 +412,7 @@ void set_end_relative_rot_r(SOCKHANDLE m_sockhand, float degree)
 
     temp_joint[6] = temp_joint[6] + degree;
 
-    ret = Movej_Cmd(m_sockhand, temp_joint, 20, 0, 1);
+    ret = Movej_Cmd(m_sockhand, temp_joint, speed, 0, 1);
     if(ret != 0)
     {
         printf("set_joint_pos Movej_Cmd 1:%d\r\n",ret);
@@ -505,7 +505,7 @@ void hand_grab_process(SOCKHANDLE m_sockhand)
     for(int i = 0;i<=2;i++)
     {
         hand_speed = 500;
-        hand_force = 500;
+        hand_force = 450;
         hand_angle[0] = 500; hand_angle[1] = 500; hand_angle[2] = 500;
         hand_angle[3] = 500; hand_angle[4] = 500;  hand_angle[5] = -1;
         ret = Set_Hand_Speed(m_sockhand, hand_speed,1);
@@ -602,56 +602,73 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
     //sleep(1);
     
     set_end_pos_r(m_sockhand_right);
-    sleep(1);
+    sleep_cp(1000);
 
     set_thumb_pos(m_sockhand_right, 100);
-    sleep(1);
+    sleep_cp(1000);
+
 
     float pos[3] = {0.04, 0.04, 0};
     set_end_relative_pos_r(m_sockhand_right, pos);
-    sleep(1);
+    sleep_cp(1000);
+
 
     hand_grab_process(m_sockhand_right);
-    sleep(1);
+    sleep_cp(1000);
+
 
     pos[0]=0; pos[1]=0; pos[2]=0.1;
     set_end_relative_pos_r(m_sockhand_right, pos);
-    sleep(1);
+    sleep_cp(1000);
+
 
     set_end_relative_rot_r(m_sockhand_right, -45);
+    sleep_cp(100);
 
-    pos[0]=0; pos[1]=0.04; pos[2]=0;
+    pos[0]=0; pos[1]=0.04; pos[2]=0.02;
     set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep_cp(100);
 
-    set_end_relative_rot_r(m_sockhand_right, -55);
-    sleep(1);
+    set_end_relative_rot_r(m_sockhand_right, -58, 15);
+    sleep_cp(1000);
 
-    set_end_relative_rot_r(m_sockhand_right, 55);
 
-    pos[0]=0.06; pos[1]=-0.06; pos[2]=0;
+    set_end_relative_rot_r(m_sockhand_right, 58, 10);
+    sleep_cp(500);
+
+    pos[0]=0.04; pos[1]=-0.06; pos[2]=-0.02;
     set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep_cp(500);
 
     set_end_relative_rot_r(m_sockhand_right, 45);
+    sleep_cp(100);
 
     set_joint_relative_rot_r(m_sockhand_right, 5, -10);
+    sleep_cp(100);
     
-    pos[0]=0; pos[1]=0; pos[2]=-0.12;
+    pos[0]=0; pos[1]=0; pos[2]=-0.13;
     set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep_cp(300);
 
     hand_release_process(m_sockhand_right);
-    sleep(1);
+    sleep_cp(1000);
+
 
     pos[0]=-0.02; pos[1]=0; pos[2]=0;
     set_end_relative_pos_r(m_sockhand_right, pos);
+    sleep_cp(100);
     pos[0]=-0.08; pos[1]=-0.08; pos[2]=0;
     set_end_relative_pos_r(m_sockhand_right, pos);
-    sleep(2);
+    sleep_cp(1000);
+
 
     reset_hand_pos(m_sockhand_right);
-
+    sleep_cp(100);
     reset_joint_pos_r(m_sockhand_right);
+    sleep_cp(100);
 
-    sleep(1);
+
+    //sleep(1);
    //rot_end_pos_r(m_sockhand_right, 10);
   }
 
@@ -693,7 +710,7 @@ void grab(const std::shared_ptr<grab_interface::srv::GrabSrvData::Request> reque
     }
     
     reset_hand_pos(m_sockhand_right);
-    reset_joint_pos_walk_r(m_sockhand_right);
+    reset_joint_pos_r(m_sockhand_right);
 
   }
   else if (request->grab_type == 'q')
